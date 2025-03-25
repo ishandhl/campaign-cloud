@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { CreditCard, Search, Filter, ArrowDownToLine, ArrowUpFromLine, CheckCircle2, XCircle, ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -66,7 +65,7 @@ const PaymentManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string | null>(null);
 
-  // Mock withdrawal requests
+  // Mock withdrawal requests with proper type annotations
   const withdrawalRequests = [
     {
       id: "w1",
@@ -86,7 +85,7 @@ const PaymentManagement = () => {
       status: "pending" as TransactionStatus,
       createdAt: "2023-08-16T14:45:00Z"
     }
-  ];
+  ] as const;
 
   useEffect(() => {
     const loadTransactions = async () => {
@@ -95,7 +94,7 @@ const PaymentManagement = () => {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Create a set of mock transactions with added user data
+      // Create a set of mock transactions with added user data and proper typing
       const extendedTransactions: ExtendedTransaction[] = [
         ...mockTransactions.map(t => ({
           ...t,
@@ -105,8 +104,8 @@ const PaymentManagement = () => {
                         t.campaignId === "campaign3" ? "Smart Home Energy Monitor" : undefined,
           status: t.status as TransactionStatus
         })),
-        // Add the mocked withdrawal requests
-        ...withdrawalRequests as ExtendedTransaction[]
+        // Add the mocked withdrawal requests with proper typing
+        ...withdrawalRequests as unknown as ExtendedTransaction[]
       ];
       
       // Sort by date, newest first
@@ -180,7 +179,7 @@ const PaymentManagement = () => {
         t.id === selectedTransaction.id 
           ? { 
               ...t, 
-              status: actionType === "approve" ? "completed" : "failed" 
+              status: actionType === "approve" ? "completed" as TransactionStatus : "failed" as TransactionStatus 
             }
           : t
       );
