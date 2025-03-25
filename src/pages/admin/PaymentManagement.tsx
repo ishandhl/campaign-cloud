@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { CreditCard, Search, Filter, ArrowDownToLine, ArrowUpFromLine, CheckCircle2, XCircle, ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,18 +72,18 @@ const PaymentManagement = () => {
       id: "w1",
       userId: "user1",
       userName: "John Doe",
-      type: "withdrawal",
+      type: "withdrawal" as const,
       amount: 500,
-      status: "pending",
+      status: "pending" as TransactionStatus,
       createdAt: "2023-08-15T10:30:00Z"
     },
     {
       id: "w2",
       userId: "user2",
       userName: "Jane Smith",
-      type: "withdrawal",
+      type: "withdrawal" as const,
       amount: 750,
-      status: "pending",
+      status: "pending" as TransactionStatus,
       createdAt: "2023-08-16T14:45:00Z"
     }
   ];
@@ -101,7 +102,8 @@ const PaymentManagement = () => {
           userName: t.userId === "user1" ? "John Doe" : "Jane Smith",
           campaignTitle: t.campaignId === "campaign1" ? "Eco-friendly Water Bottle" : 
                         t.campaignId === "campaign2" ? "Educational STEM Toy for Kids" : 
-                        t.campaignId === "campaign3" ? "Smart Home Energy Monitor" : undefined
+                        t.campaignId === "campaign3" ? "Smart Home Energy Monitor" : undefined,
+          status: t.status as TransactionStatus
         })),
         // Add the mocked withdrawal requests
         ...withdrawalRequests as ExtendedTransaction[]

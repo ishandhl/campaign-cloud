@@ -1,3 +1,4 @@
+
 import { supabase, getCurrentUserId } from '@/lib/supabase';
 import { Campaign, User, Transaction, Contribution } from '@/types';
 
@@ -157,7 +158,7 @@ export const getAllUsers = async (): Promise<User[]> => {
 // Update user admin status
 export const updateUserAdminStatus = async (
   userId: string, 
-  isAdmin: boolean
+  isAdminStatus: boolean
 ): Promise<{ success: boolean; error?: string }> => {
   // Verify current user is admin first
   const adminStatus = await isAdmin();
@@ -167,7 +168,7 @@ export const updateUserAdminStatus = async (
 
   const { error } = await supabase
     .from('profiles')
-    .update({ is_admin: isAdmin })
+    .update({ is_admin: isAdminStatus })
     .eq('id', userId);
 
   if (error) {
@@ -212,15 +213,7 @@ export const getAllTransactions = async (): Promise<Transaction[]> => {
     status: item.status,
     paymentId: item.payment_id,
     campaignId: item.campaign_id,
-    createdAt: item.created_at,
-    user: item.profiles ? {
-      id: item.profiles.id,
-      name: item.profiles.name,
-      email: item.profiles.email,
-      isAdmin: false, // Not needed here
-      wallet: { balance: 0 }, // Not needed here
-      createdAt: ''
-    } : undefined
+    createdAt: item.created_at
   }));
 };
 

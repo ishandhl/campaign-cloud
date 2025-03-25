@@ -235,8 +235,8 @@ const MyCampaigns = () => {
                                 <div className="flex items-center">
                                   <h3 className="font-semibold">{campaign.title}</h3>
                                   <Badge 
-                                    variant="default" className="bg-green-500"
-                                    className="ml-2"
+                                    variant={campaign.status === "active" ? "success" : 
+                                              campaign.status === "pending" ? "warning" : "default"}
                                   >
                                     {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
                                   </Badge>
