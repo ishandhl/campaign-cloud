@@ -1,8 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/types";
-import { mockUsers } from "@/lib/mockData";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { AuthError, AuthResponse, Session, User as SupabaseUser } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
@@ -20,33 +21,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialize user session on component mount
   useEffect(() => {
-    // Check if user exists in localStorage
-    const storedUser = localStorage.getItem("crowdfund_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const initializeAuth = async () => {
+      setLoading(true);
+      
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        await fetchAndSetUser(session);
+      }
+      
+      setLoading(false);
+      
+      // Set up auth state change listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (session) {
+            await fetchAndSetUser(session);
+          } else {
+            setUser(null);
+          }
+        }
+      );
+      
+      // Clean up subscription on unmount
+      return () => {
+        subscription.unsubscribe();
+      };
+    };
+    
+    initializeAuth();
   }, []);
 
+  // Fetch user profile data and set the user state
+  const fetchAndSetUser = async (session: Session) => {
+    // Get user profile from the profiles table
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching user profile:", error);
+      return;
+    }
+    
+    // Set user state with profile data
+    setUser({
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      profileImage: profile.profile_image,
+      isAdmin: profile.is_admin,
+      wallet: {
+        balance: profile.wallet_balance
+      },
+      createdAt: profile.created_at
+    });
+  };
+
+  // Login with email and password
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data, error }: AuthResponse = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
-      // Find user by email (in a real app, this would be a backend call)
-      const foundUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      if (foundUser) {
-        // In a real app, we would verify the password here
-        setUser(foundUser);
-        localStorage.setItem("crowdfund_user", JSON.stringify(foundUser));
-        toast.success("Login successful");
-        return true;
-      } else {
-        toast.error("Invalid email or password");
+      if (error) {
+        toast.error(error.message);
         return false;
       }
+      
+      toast.success("Login successful");
+      return true;
     } catch (error) {
       console.error("Login error:", error);
       toast.error("Login failed");
@@ -54,17 +105,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Login with Google OAuth
   const loginWithGoogle = async (): Promise<boolean> => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
       
-      // In a real app, this would integrate with Google OAuth
-      // For now, just log in as the first user
-      const googleUser = mockUsers[0];
-      setUser(googleUser);
-      localStorage.setItem("crowdfund_user", JSON.stringify(googleUser));
-      toast.success("Google login successful");
+      if (error) {
+        toast.error(error.message);
+        return false;
+      }
+      
       return true;
     } catch (error) {
       console.error("Google login error:", error);
@@ -73,40 +128,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  // Logout
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    
     setUser(null);
-    localStorage.removeItem("crowdfund_user");
     toast.success("Logged out successfully");
   };
 
+  // Register new user
   const register = async (email: string, name: string, password: string): Promise<boolean> => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check if user already exists
-      const existingUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (existingUser) {
-        toast.error("Email already in use");
+      // Create user in Supabase Auth
+      const { data, error: signUpError }: AuthResponse = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          },
+        }
+      });
+      
+      if (signUpError) {
+        toast.error(signUpError.message);
         return false;
       }
-
-      // Create a new user (in a real app, this would be a backend call)
-      const newUser: User = {
-        id: `user${mockUsers.length + 1}`,
-        email,
-        name,
-        isAdmin: false,
-        wallet: {
-          balance: 0
-        },
-        createdAt: new Date().toISOString()
-      };
-
-      // In a real app, we would add this user to the database
-      // For now, just set as current user
-      setUser(newUser);
-      localStorage.setItem("crowdfund_user", JSON.stringify(newUser));
+      
+      // Create user profile in the profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user?.id,
+          email,
+          name,
+          is_admin: false,
+          wallet_balance: 0,
+          created_at: new Date().toISOString()
+        });
+      
+      if (profileError) {
+        console.error("Error creating profile:", profileError);
+        toast.error("Failed to create user profile");
+        return false;
+      }
+      
       toast.success("Registration successful");
       return true;
     } catch (error) {

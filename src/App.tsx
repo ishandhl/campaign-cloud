@@ -13,6 +13,7 @@ import CampaignDetails from "./pages/CampaignDetails";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import Callback from "./pages/auth/Callback";
 
 // Protected Pages
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/campaigns/:id" element={<CampaignDetails />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/auth/callback" element={<Callback />} />
 
             {/* Protected Routes */}
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
