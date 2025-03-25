@@ -1,11 +1,10 @@
-
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
 
 // Supabase client initialization with environment variables or fallback values for development
 // In production, these should be properly set in your deployment environment
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-ref.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // For development purposes only - log a warning instead of throwing an error
 if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
@@ -15,15 +14,28 @@ if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KE
 }
 
 // Create a single instance of the Supabase client to be used throughout the app
+// We provide fallback values that will be valid for createClient but will throw more meaningful errors when used
 export const supabase = createClient<Database>(
-  supabaseUrl,
-  supabaseAnonKey
+  supabaseUrl || 'https://placeholder-for-error-handling.supabase.co',
+  supabaseAnonKey || 'placeholder-anon-key'
 );
 
 // Utility function to get the current user's ID
 export const getCurrentUserId = async (): Promise<string | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Check if Supabase is properly configured
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Supabase not properly configured: Missing URL or API key');
+      return null;
+    }
+
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+    
     return user?.id || null;
   } catch (error) {
     console.error('Error getting current user:', error);

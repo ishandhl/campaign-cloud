@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import MainLayout from "@/components/layout/MainLayout";
 
@@ -15,6 +17,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [registrationError, setRegistrationError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -41,26 +44,49 @@ const Register = () => {
       return;
     }
     
+    setRegistrationError("");
     setIsLoading(true);
     
     try {
       const success = await register(email, name, password);
       if (success) {
         navigate("/dashboard");
+      } else {
+        // If register() returns false but doesn't throw, we'll show a generic error
+        setRegistrationError("Registration failed. Please try again later.");
       }
+    } catch (error) {
+      console.error("Registration error:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      setRegistrationError(
+        errorMessage === "Failed to fetch" 
+          ? "Network error. Please check your connection and try again."
+          : errorMessage
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleRegister = async () => {
+    setRegistrationError("");
     setIsLoading(true);
     
     try {
       const success = await loginWithGoogle();
       if (success) {
         navigate("/dashboard");
+      } else {
+        setRegistrationError("Google sign-in failed. Please try again.");
       }
+    } catch (error) {
+      console.error("Google login error:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      setRegistrationError(
+        errorMessage === "Failed to fetch" 
+          ? "Network error. Please check your connection and try again."
+          : errorMessage
+      );
     } finally {
       setIsLoading(false);
     }
@@ -79,6 +105,13 @@ const Register = () => {
             </CardHeader>
             
             <CardContent className="space-y-4">
+              {registrationError && (
+                <Alert variant="destructive" className="border-red-500">
+                  <InfoIcon className="h-4 w-4" />
+                  <AlertDescription>{registrationError}</AlertDescription>
+                </Alert>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>

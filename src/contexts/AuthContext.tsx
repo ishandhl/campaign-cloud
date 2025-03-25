@@ -100,7 +100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Login failed");
+      const errorMessage = error instanceof Error ? error.message : "Network error. Please check your connection.";
+      toast.error(errorMessage === "Failed to fetch" ? "Network error. Please check your connection." : errorMessage);
       return false;
     }
   };
@@ -123,7 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (error) {
       console.error("Google login error:", error);
-      toast.error("Google login failed");
+      const errorMessage = error instanceof Error ? error.message : "Network error. Please check your connection.";
+      toast.error(errorMessage === "Failed to fetch" ? "Network error. Please check your connection." : errorMessage);
       return false;
     }
   };
@@ -144,6 +146,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Register new user
   const register = async (email: string, name: string, password: string): Promise<boolean> => {
     try {
+      // Check if Supabase URL is properly configured
+      if (!supabase.supabaseUrl || supabase.supabaseUrl === 'https://your-project-ref.supabase.co') {
+        toast.error("Supabase is not properly configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.");
+        console.error("Supabase configuration error: URL not properly set");
+        return false;
+      }
+
       // Create user in Supabase Auth
       const { data, error: signUpError }: AuthResponse = await supabase.auth.signUp({
         email,
@@ -161,28 +170,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Create user profile in the profiles table
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user?.id,
-          email,
-          name,
-          is_admin: false,
-          wallet_balance: 0,
-          created_at: new Date().toISOString()
-        });
-      
-      if (profileError) {
-        console.error("Error creating profile:", profileError);
-        toast.error("Failed to create user profile");
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email,
+            name,
+            is_admin: false,
+            wallet_balance: 0,
+            created_at: new Date().toISOString()
+          });
+        
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+          toast.error("Failed to create user profile");
+          return false;
+        }
+        
+        toast.success("Registration successful");
+        return true;
+      } else {
+        toast.error("Registration failed: No user was created");
         return false;
       }
-      
-      toast.success("Registration successful");
-      return true;
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error("Registration failed");
+      
+      // Handle network errors more gracefully
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      
+      if (errorMessage === "Failed to fetch") {
+        toast.error("Network error. Please check your connection and Supabase configuration.");
+      } else {
+        toast.error(`Registration failed: ${errorMessage}`);
+      }
+      
       return false;
     }
   };
