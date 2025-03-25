@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -172,11 +171,7 @@ const MyContributions = () => {
                       <div className="flex flex-wrap gap-4">
                         <div className="text-sm">
                           <Label className="text-muted-foreground mr-1">Campaign Status:</Label>
-                          <Badge variant={
-                            contribution.campaign.status === "active" ? "default" : 
-                            contribution.campaign.status === "funded" ? "success" :
-                            contribution.campaign.status === "pending" ? "warning" : "secondary"
-                          }>
+                          <Badge variant="default" className="bg-green-500">
                             {contribution.campaign.status.charAt(0).toUpperCase() + contribution.campaign.status.slice(1)}
                           </Badge>
                         </div>

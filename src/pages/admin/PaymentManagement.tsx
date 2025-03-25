@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { CreditCard, Search, Filter, ArrowDownToLine, ArrowUpFromLine, CheckCircle2, XCircle, ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,10 +31,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Transaction } from "@/types";
 import { mockTransactions } from "@/lib/mockData";
 
-// Extended transaction type for admin view
+// Define the TransactionStatus type and use it consistently
+type TransactionStatus = "pending" | "completed" | "failed";
+
+// Update the ExtendedTransaction interface to specify valid status values:
 interface ExtendedTransaction extends Transaction {
   userName: string;
   campaignTitle?: string;
+  status: TransactionStatus;
 }
 
 const PaymentManagement = () => {

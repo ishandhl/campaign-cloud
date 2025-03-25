@@ -1,6 +1,7 @@
-
 import { supabase, getCurrentUserId } from '@/lib/supabase';
-import { AdminDashboardStats } from '@/types';
+import { Campaign, User, Transaction, Contribution } from '@/types';
+
+// Admin-only API functions
 
 // Check if the current user is an admin
 export const isAdmin = async (): Promise<boolean> => {
@@ -21,204 +22,112 @@ export const isAdmin = async (): Promise<boolean> => {
     return false;
   }
 
-  return data.is_admin === true;
+  return !!data.is_admin;
 };
 
-// Get admin dashboard stats
-export const getAdminDashboardStats = async (): Promise<AdminDashboardStats | null> => {
-  // Check if the user is an admin first
+// Get all campaigns for admin review
+export const getAllCampaigns = async (): Promise<Campaign[]> => {
+  // Verify admin status first
   const adminStatus = await isAdmin();
   if (!adminStatus) {
-    return null;
+    throw new Error('Unauthorized: Admin access required');
   }
 
-  // This would typically be a single RPC call in a real backend
-  // For now, we'll make separate calls and combine them
-
-  // Get total users
-  const { count: totalUsers, error: usersError } = await supabase
-    .from('profiles')
-    .select('id', { count: 'exact', head: true });
-
-  // Get total campaigns
-  const { count: totalCampaigns, error: campaignsError } = await supabase
+  const { data, error } = await supabase
     .from('campaigns')
-    .select('id', { count: 'exact', head: true });
-
-  // Get total funds raised
-  const { data: fundsData, error: fundsError } = await supabase
-    .from('contributions')
-    .select('amount')
-    .eq('status', 'completed');
-
-  // Get active users (users who have contributed in the last 30 days)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  
-  const { count: activeUsers, error: activeUsersError } = await supabase
-    .from('contributions')
-    .select('user_id', { count: 'exact', head: true })
-    .eq('status', 'completed')
-    .gt('created_at', thirtyDaysAgo.toISOString());
-
-  // Get active campaigns
-  const { count: activeCampaigns, error: activeCampaignsError } = await supabase
-    .from('campaigns')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'active');
-
-  // Get pending campaigns
-  const { count: pendingCampaigns, error: pendingCampaignsError } = await supabase
-    .from('campaigns')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'pending');
-
-  // Get transactions
-  const { count: totalTransactions, error: transactionsError } = await supabase
-    .from('transactions')
-    .select('id', { count: 'exact', head: true });
-
-  // Get pending withdrawals
-  const { count: pendingWithdrawals, error: withdrawalsError } = await supabase
-    .from('transactions')
-    .select('id', { count: 'exact', head: true })
-    .eq('type', 'withdrawal')
-    .eq('status', 'pending');
-
-  // Calculate success rate (funded campaigns / total completed campaigns)
-  const { count: successfulCampaigns, error: successError } = await supabase
-    .from('campaigns')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'funded');
-
-  const { count: completedCampaigns, error: completedError } = await supabase
-    .from('campaigns')
-    .select('id', { count: 'exact', head: true })
-    .or('status.eq.funded,status.eq.failed');
-
-  if (
-    usersError || campaignsError || fundsError || activeUsersError || 
-    activeCampaignsError || pendingCampaignsError || transactionsError || 
-    withdrawalsError || successError || completedError
-  ) {
-    console.error('Error fetching admin stats');
-    return null;
-  }
-
-  // Calculate total funds raised
-  const totalFundsRaised = fundsData?.reduce((sum, item) => sum + item.amount, 0) || 0;
-
-  // Calculate success rate
-  const successRate = completedCampaigns > 0 
-    ? (successfulCampaigns / completedCampaigns) * 100 
-    : 0;
-
-  return {
-    totalUsers: totalUsers || 0,
-    totalCampaigns: totalCampaigns || 0,
-    totalFundsRaised,
-    activeUsers: activeUsers || 0,
-    activeCampaigns: activeCampaigns || 0,
-    successRate,
-    pendingCampaigns: pendingCampaigns || 0,
-    pendingWithdrawals: pendingWithdrawals || 0,
-    totalTransactions: totalTransactions || 0
-  };
-};
-
-// Approve a campaign
-export const approveCampaign = async (campaignId: string): Promise<{ success: boolean; error?: string }> => {
-  // Check if the user is an admin first
-  const adminStatus = await isAdmin();
-  if (!adminStatus) {
-    return { success: false, error: 'Not authorized' };
-  }
-
-  const { error } = await supabase
-    .from('campaigns')
-    .update({ status: 'active' })
-    .eq('id', campaignId);
+    .select(`
+      *,
+      profiles:creator_id (
+        id,
+        name,
+        email
+      )
+    `)
+    .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error approving campaign:', error);
-    return { success: false, error: error.message };
+    console.error('Error fetching all campaigns:', error);
+    throw error;
   }
 
-  // Add notification for the campaign creator
-  const { data: campaign } = await supabase
-    .from('campaigns')
-    .select('creator_id, title')
-    .eq('id', campaignId)
-    .single();
-
-  if (campaign) {
-    await supabase
-      .from('notifications')
-      .insert({
-        user_id: campaign.creator_id,
-        title: 'Campaign Approved',
-        message: `Your campaign "${campaign.title}" has been approved and is now live.`,
-        is_read: false,
-        type: 'system',
-        related_id: campaignId,
-        created_at: new Date().toISOString()
-      });
-  }
-
-  return { success: true };
+  // Transform the data to match our Campaign type
+  return data.map((item: any): Campaign => ({
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    shortDescription: item.short_description,
+    coverImage: item.cover_image,
+    category: item.category,
+    goalAmount: item.goal_amount,
+    currentAmount: item.current_amount,
+    startDate: item.start_date,
+    endDate: item.end_date,
+    creatorId: item.creator_id,
+    status: item.status,
+    backers: item.backers,
+    createdAt: item.created_at,
+    creator: item.profiles ? {
+      id: item.profiles.id,
+      name: item.profiles.name,
+      email: item.profiles.email,
+      isAdmin: false, // Not needed here
+      wallet: { balance: 0 }, // Not needed here
+      createdAt: ''
+    } : undefined
+  }));
 };
 
-// Reject a campaign
-export const rejectCampaign = async (
+// Update campaign status (approve, reject, etc.)
+export const updateCampaignStatus = async (
   campaignId: string, 
-  reason: string
+  status: 'draft' | 'pending' | 'active' | 'funded' | 'failed',
+  notes?: string
 ): Promise<{ success: boolean; error?: string }> => {
-  // Check if the user is an admin first
+  // Verify admin status first
   const adminStatus = await isAdmin();
   if (!adminStatus) {
-    return { success: false, error: 'Not authorized' };
+    return { success: false, error: 'Unauthorized: Admin access required' };
   }
 
   const { error } = await supabase
     .from('campaigns')
-    .update({ status: 'draft' })
+    .update({ status })
     .eq('id', campaignId);
 
   if (error) {
-    console.error('Error rejecting campaign:', error);
+    console.error('Error updating campaign status:', error);
     return { success: false, error: error.message };
   }
 
-  // Add notification for the campaign creator
-  const { data: campaign } = await supabase
-    .from('campaigns')
-    .select('creator_id, title')
-    .eq('id', campaignId)
-    .single();
-
-  if (campaign) {
-    await supabase
-      .from('notifications')
+  // If notes are provided, add an admin note to the campaign
+  if (notes) {
+    const userId = await getCurrentUserId();
+    
+    const { error: noteError } = await supabase
+      .from('campaign_notes')
       .insert({
-        user_id: campaign.creator_id,
-        title: 'Campaign Requires Changes',
-        message: `Your campaign "${campaign.title}" has been returned to draft status. Reason: ${reason}`,
-        is_read: false,
-        type: 'system',
-        related_id: campaignId,
-        created_at: new Date().toISOString()
+        campaign_id: campaignId,
+        admin_id: userId,
+        note: notes,
+        type: status === 'active' ? 'approval' : 
+              status === 'failed' ? 'rejection' : 'status_change'
       });
+
+    if (noteError) {
+      console.error('Error adding admin note:', noteError);
+      // We don't fail the whole operation if just the note fails
+    }
   }
 
   return { success: true };
 };
 
-// Get all users (admin only)
-export const getAllUsers = async () => {
-  // Check if the user is an admin first
+// Get all users for admin management
+export const getAllUsers = async (): Promise<User[]> => {
+  // Verify admin status first
   const adminStatus = await isAdmin();
   if (!adminStatus) {
-    return { success: false, error: 'Not authorized', data: [] };
+    throw new Error('Unauthorized: Admin access required');
   }
 
   const { data, error } = await supabase
@@ -227,35 +136,33 @@ export const getAllUsers = async () => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching users:', error);
-    return { success: false, error: error.message, data: [] };
+    console.error('Error fetching all users:', error);
+    throw error;
   }
 
-  return { 
-    success: true, 
-    data: data.map((user: any) => ({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      profileImage: user.profile_image,
-      isAdmin: user.is_admin,
-      wallet: {
-        balance: user.wallet_balance
-      },
-      createdAt: user.created_at
-    }))
-  };
+  // Transform the data to match our User type
+  return data.map((item: any): User => ({
+    id: item.id,
+    name: item.name,
+    email: item.email,
+    profileImage: item.profile_image,
+    isAdmin: item.is_admin,
+    wallet: {
+      balance: item.wallet_balance
+    },
+    createdAt: item.created_at
+  }));
 };
 
-// Update a user's admin status (admin only)
+// Update user admin status
 export const updateUserAdminStatus = async (
   userId: string, 
   isAdmin: boolean
 ): Promise<{ success: boolean; error?: string }> => {
-  // Check if the current user is an admin first
+  // Verify current user is admin first
   const adminStatus = await isAdmin();
   if (!adminStatus) {
-    return { success: false, error: 'Not authorized' };
+    return { success: false, error: 'Unauthorized: Admin access required' };
   }
 
   const { error } = await supabase
@@ -271,57 +178,199 @@ export const updateUserAdminStatus = async (
   return { success: true };
 };
 
-// Get pending campaigns for approval
-export const getPendingCampaigns = async () => {
-  // Check if the user is an admin first
+// Get all transactions for admin review
+export const getAllTransactions = async (): Promise<Transaction[]> => {
+  // Verify admin status first
   const adminStatus = await isAdmin();
   if (!adminStatus) {
-    return { success: false, error: 'Not authorized', data: [] };
+    throw new Error('Unauthorized: Admin access required');
   }
 
   const { data, error } = await supabase
-    .from('campaigns')
+    .from('transactions')
     .select(`
       *,
-      profiles:creator_id (
+      profiles:user_id (
         id,
         name,
         email
       )
     `)
-    .eq('status', 'pending')
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching pending campaigns:', error);
-    return { success: false, error: error.message, data: [] };
+    console.error('Error fetching all transactions:', error);
+    throw error;
   }
 
-  return { 
-    success: true, 
-    data: data.map((campaign: any) => ({
-      id: campaign.id,
-      title: campaign.title,
-      shortDescription: campaign.short_description,
-      description: campaign.description,
-      coverImage: campaign.cover_image,
-      category: campaign.category,
-      goalAmount: campaign.goal_amount,
-      currentAmount: campaign.current_amount,
-      startDate: campaign.start_date,
-      endDate: campaign.end_date,
-      creatorId: campaign.creator_id,
-      creator: campaign.profiles ? {
-        id: campaign.profiles.id,
-        name: campaign.profiles.name,
-        email: campaign.profiles.email,
-        isAdmin: false,
-        wallet: { balance: 0 },
-        createdAt: ''
-      } : undefined,
-      status: campaign.status,
-      backers: campaign.backers,
-      createdAt: campaign.created_at
-    }))
+  // Transform the data to match our Transaction type
+  return data.map((item: any): Transaction => ({
+    id: item.id,
+    userId: item.user_id,
+    type: item.type,
+    amount: item.amount,
+    status: item.status,
+    paymentId: item.payment_id,
+    campaignId: item.campaign_id,
+    createdAt: item.created_at,
+    user: item.profiles ? {
+      id: item.profiles.id,
+      name: item.profiles.name,
+      email: item.profiles.email,
+      isAdmin: false, // Not needed here
+      wallet: { balance: 0 }, // Not needed here
+      createdAt: ''
+    } : undefined
+  }));
+};
+
+// Update transaction status (approve, reject)
+export const updateTransactionStatus = async (
+  transactionId: string, 
+  status: 'pending' | 'completed' | 'failed',
+  notes?: string
+): Promise<{ success: boolean; error?: string }> => {
+  // Verify admin status first
+  const adminStatus = await isAdmin();
+  if (!adminStatus) {
+    return { success: false, error: 'Unauthorized: Admin access required' };
+  }
+
+  // Get the transaction first to determine if additional actions are needed
+  const { data: transaction, error: fetchError } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', transactionId)
+    .single();
+
+  if (fetchError) {
+    console.error('Error fetching transaction:', fetchError);
+    return { success: false, error: fetchError.message };
+  }
+
+  // Update the transaction status
+  const { error } = await supabase
+    .from('transactions')
+    .update({ status })
+    .eq('id', transactionId);
+
+  if (error) {
+    console.error('Error updating transaction status:', error);
+    return { success: false, error: error.message };
+  }
+
+  // If this is a withdrawal and it's being completed, update the user's wallet balance
+  if (transaction.type === 'withdrawal' && status === 'completed') {
+    const { error: walletError } = await supabase
+      .from('profiles')
+      .update({ 
+        wallet_balance: supabase.rpc('decrement_wallet', { 
+          user_id: transaction.user_id, 
+          amount: transaction.amount 
+        })
+      })
+      .eq('id', transaction.user_id);
+
+    if (walletError) {
+      console.error('Error updating wallet balance:', walletError);
+      // We don't fail the whole operation, but this is a serious issue
+      // In a real app, you'd want to implement better error handling and possibly rollback
+    }
+  }
+
+  // If this is a contribution and it's being completed, update the campaign's current amount
+  if (transaction.type === 'contribution' && status === 'completed' && transaction.campaign_id) {
+    const { error: campaignError } = await supabase
+      .from('campaigns')
+      .update({ 
+        current_amount: supabase.rpc('increment_campaign_amount', { 
+          campaign_id: transaction.campaign_id, 
+          amount: transaction.amount 
+        }),
+        backers: supabase.rpc('increment_backers', { 
+          campaign_id: transaction.campaign_id
+        })
+      })
+      .eq('id', transaction.campaign_id);
+
+    if (campaignError) {
+      console.error('Error updating campaign amount:', campaignError);
+      // We don't fail the whole operation, but this is a serious issue
+    }
+  }
+
+  // If notes are provided, add an admin note
+  if (notes) {
+    const userId = await getCurrentUserId();
+    
+    const { error: noteError } = await supabase
+      .from('transaction_notes')
+      .insert({
+        transaction_id: transactionId,
+        admin_id: userId,
+        note: notes,
+        type: status === 'completed' ? 'approval' : 'rejection'
+      });
+
+    if (noteError) {
+      console.error('Error adding transaction note:', noteError);
+      // We don't fail the whole operation if just the note fails
+    }
+  }
+
+  return { success: true };
+};
+
+// Get system statistics for admin dashboard
+export const getSystemStats = async (): Promise<{
+  totalUsers: number;
+  totalCampaigns: number;
+  totalFunds: number;
+  pendingCampaigns: number;
+  pendingWithdrawals: number;
+}> => {
+  // Verify admin status first
+  const adminStatus = await isAdmin();
+  if (!adminStatus) {
+    throw new Error('Unauthorized: Admin access required');
+  }
+
+  // Get total users
+  const { count: totalUsers, error: usersError } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true });
+
+  if (usersError) {
+    console.error('Error fetching user count:', usersError);
+    throw usersError;
+  }
+
+  // Get campaign stats
+  const { data: campaignStats, error: campaignsError } = await supabase
+    .rpc('get_campaign_stats');
+
+  if (campaignsError) {
+    console.error('Error fetching campaign stats:', campaignsError);
+    throw campaignsError;
+  }
+
+  // Get pending withdrawals
+  const { count: pendingWithdrawals, error: withdrawalsError } = await supabase
+    .from('transactions')
+    .select('*', { count: 'exact', head: true })
+    .eq('type', 'withdrawal')
+    .eq('status', 'pending');
+
+  if (withdrawalsError) {
+    console.error('Error fetching pending withdrawals:', withdrawalsError);
+    throw withdrawalsError;
+  }
+
+  return {
+    totalUsers: totalUsers || 0,
+    totalCampaigns: campaignStats?.total_campaigns || 0,
+    totalFunds: campaignStats?.total_funds || 0,
+    pendingCampaigns: campaignStats?.pending_campaigns || 0,
+    pendingWithdrawals: pendingWithdrawals || 0
   };
 };

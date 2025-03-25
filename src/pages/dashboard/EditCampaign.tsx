@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/calendar/date-picker";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Calendar, AlertTriangle } from "lucide-react";
 import { Campaign } from "@/types";
@@ -37,7 +36,6 @@ const EditCampaign = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notFound, setNotFound] = useState(false);
   
-  // Default image URLs for demo purposes
   const defaultImages = [
     "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fHdhdGVyJTIwYm90dGxlfGVufDB8fDB8fHww",
     "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -49,10 +47,8 @@ const EditCampaign = () => {
     const loadCampaign = async () => {
       setLoading(true);
       
-      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Find the campaign by ID
       const foundCampaign = mockCampaigns.find(c => c.id === id);
       
       if (!foundCampaign) {
@@ -61,7 +57,6 @@ const EditCampaign = () => {
         return;
       }
       
-      // Check if the current user is the creator
       if (user && foundCampaign.creatorId !== user.id) {
         setNotFound(true);
         setLoading(false);
@@ -70,7 +65,6 @@ const EditCampaign = () => {
       
       setCampaign(foundCampaign);
       
-      // Populate form fields
       setTitle(foundCampaign.title);
       setShortDescription(foundCampaign.shortDescription);
       setDescription(foundCampaign.description);
@@ -183,18 +177,13 @@ const EditCampaign = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // In a real app, this would submit data to a backend API
-      
-      // Show success toast
       toast({
         title: "Campaign Updated",
         description: "Your campaign has been updated successfully.",
       });
       
-      // Redirect to the campaigns list
       navigate("/dashboard/campaigns");
     } catch (error) {
       console.error("Submit error:", error);
@@ -319,7 +308,6 @@ const EditCampaign = () => {
                     placeholder="Enter your funding goal amount"
                     value={goalAmount}
                     onChange={(e) => setGoalAmount(e.target.value)}
-                    // Disable if campaign has contributions
                     disabled={campaign?.currentAmount ? campaign.currentAmount > 0 : false}
                   />
                   {campaign?.currentAmount && campaign.currentAmount > 0 && (
@@ -340,7 +328,6 @@ const EditCampaign = () => {
                       onSelect={setStartDate}
                       initialFocus
                       disabled={(date) => {
-                        // Disable if campaign has already started
                         if (campaign?.status !== "draft") {
                           return true;
                         }
@@ -364,7 +351,6 @@ const EditCampaign = () => {
                       onSelect={setEndDate}
                       initialFocus
                       disabled={(date) => {
-                        // Disable if campaign has ended
                         if (campaign?.status === "funded" || campaign?.status === "failed") {
                           return true;
                         }

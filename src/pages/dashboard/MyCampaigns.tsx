@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -236,12 +235,7 @@ const MyCampaigns = () => {
                                 <div className="flex items-center">
                                   <h3 className="font-semibold">{campaign.title}</h3>
                                   <Badge 
-                                    variant={
-                                      campaign.status === "active" ? "default" : 
-                                      campaign.status === "funded" ? "success" :
-                                      campaign.status === "pending" ? "warning" : 
-                                      campaign.status === "draft" ? "outline" : "secondary"
-                                    }
+                                    variant="default" className="bg-green-500"
                                     className="ml-2"
                                   >
                                     {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}

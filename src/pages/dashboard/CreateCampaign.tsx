@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/calendar";
+import { DatePicker as DatePickerComponent } from "@/components/ui/calendar/date-picker";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Calendar, Upload, Plus, Minus } from "lucide-react";
 import { mockCategories } from "@/lib/mockData";
@@ -34,7 +33,6 @@ const CreateCampaign = () => {
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Default image URLs for demo purposes
   const defaultImages = [
     "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fHdhdGVyJTIwYm90dGxlfGVufDB8fDB8fHww",
     "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -137,18 +135,13 @@ const CreateCampaign = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // In a real app, this would submit data to a backend API
-      
-      // Show success toast
       toast({
         title: "Campaign Created",
         description: "Your campaign has been created successfully and is pending review.",
       });
       
-      // Redirect to the campaigns list
       navigate("/dashboard/campaigns");
     } catch (error) {
       console.error("Submit error:", error);
@@ -252,7 +245,7 @@ const CreateCampaign = () => {
                 <div className="space-y-2">
                   <Label>Start Date</Label>
                   <div className="border rounded-md p-2">
-                    <DatePicker
+                    <DatePickerComponent
                       mode="single"
                       selected={startDate}
                       onSelect={setStartDate}
@@ -265,7 +258,7 @@ const CreateCampaign = () => {
                 <div className="space-y-2">
                   <Label>End Date</Label>
                   <div className="border rounded-md p-2">
-                    <DatePicker
+                    <DatePickerComponent
                       mode="single"
                       selected={endDate}
                       onSelect={setEndDate}

@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { Settings, Save, Info, Lock, Languages, Paintbrush, Bell, CreditCard, Smartphone } from "lucide-react";
+import { Settings, Save, Info, Lock, Languages, Paintbrush, Bell, CreditCard, Smartphone, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

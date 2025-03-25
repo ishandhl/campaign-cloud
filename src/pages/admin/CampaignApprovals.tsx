@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { FileText, Search, Filter, Eye, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
@@ -101,7 +100,7 @@ const CampaignApprovals = () => {
       // Categorize campaigns by status
       const pending = filtered.filter(campaign => campaign.status === "pending");
       const approved = filtered.filter(campaign => campaign.status === "active");
-      const rejected = filtered.filter(campaign => campaign.status === "rejected" || campaign.status === "failed");
+      const rejected = filtered.filter(campaign => campaign.status === "failed"); // or another valid status value
       
       setFilteredCampaigns({ pending, approved, rejected });
     }
@@ -273,11 +272,7 @@ const CampaignApprovals = () => {
                               <div className="flex items-center">
                                 <h3 className="font-semibold">{campaign.title}</h3>
                                 <Badge 
-                                  variant={
-                                    campaign.status === "active" ? "default" : 
-                                    campaign.status === "pending" ? "warning" : 
-                                    "destructive"
-                                  }
+                                  variant="outline" className="text-yellow-500"
                                   className="ml-2"
                                 >
                                   {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
