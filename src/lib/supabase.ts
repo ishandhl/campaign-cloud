@@ -2,30 +2,38 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
 
-// Supabase client initialization with environment variables
-// These are automatically available from your Supabase integration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Supabase client initialization with environment variables or fallback values for development
+// In production, these should be properly set in your deployment environment
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-ref.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase environment variables are not set.');
+// For development purposes only - log a warning instead of throwing an error
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.warn('⚠️ Supabase environment variables are not set. Using fallback values for development.');
+  console.warn('⚠️ Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+  console.warn('⚠️ Visit https://docs.lovable.dev/integrations/supabase/ to learn how to set up Supabase with Lovable.');
 }
 
 // Create a single instance of the Supabase client to be used throughout the app
 export const supabase = createClient<Database>(
-  supabaseUrl as string,
-  supabaseAnonKey as string
+  supabaseUrl,
+  supabaseAnonKey
 );
 
 // Utility function to get the current user's ID
 export const getCurrentUserId = async (): Promise<string | null> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id || null;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || null;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
 };
 
 // Types for database tables
 export interface Tables {
-  users: {
+  profiles: {
     id: string;
     email: string;
     name: string;
