@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import { toast } from 'sonner';
 
@@ -12,6 +12,16 @@ const Callback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // Check if Supabase is configured properly
+        if (!isSupabaseConfigured()) {
+          const configError = "Supabase is not configured correctly. Please check environment variables.";
+          console.error(configError);
+          setError(configError);
+          toast.error(configError);
+          setTimeout(() => navigate('/login'), 3000);
+          return;
+        }
+
         // Get the session after OAuth redirect
         const { data, error: sessionError } = await supabase.auth.getSession();
         
@@ -19,15 +29,16 @@ const Callback = () => {
           console.error('Error getting session:', sessionError);
           setError(sessionError.message);
           toast.error('Authentication failed: ' + sessionError.message);
-          setTimeout(() => navigate('/login'), 2000);
+          setTimeout(() => navigate('/login'), 3000);
           return;
         }
 
         if (!data.session) {
-          console.error('No session found');
-          setError('Authentication failed. Please try again.');
-          toast.error('Authentication failed. No session found.');
-          setTimeout(() => navigate('/login'), 2000);
+          const noSessionError = 'No session found. The authentication may have been cancelled.';
+          console.error(noSessionError);
+          setError(noSessionError);
+          toast.error(noSessionError);
+          setTimeout(() => navigate('/login'), 3000);
           return;
         }
 
@@ -39,7 +50,7 @@ const Callback = () => {
         console.error('Unexpected error during authentication:', err);
         setError('An unexpected error occurred. Please try again.');
         toast.error('Authentication error: ' + errorMessage);
-        setTimeout(() => navigate('/login'), 2000);
+        setTimeout(() => navigate('/login'), 3000);
       }
     };
 
@@ -47,11 +58,14 @@ const Callback = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
       {error ? (
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <p className="text-red-500 text-lg mb-4">{error}</p>
-          <p>Redirecting to login page...</p>
+          <p className="text-gray-600 dark:text-gray-300">Redirecting to login page...</p>
+          <p className="mt-4 text-sm text-gray-500">
+            If you're seeing this error, please make sure the Supabase environment variables are properly set.
+          </p>
         </div>
       ) : (
         <>

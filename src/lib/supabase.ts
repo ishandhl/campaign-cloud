@@ -1,30 +1,36 @@
+
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
 
 // Supabase client initialization with environment variables or fallback values for development
-// In production, these should be properly set in your deployment environment
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// For development purposes only - log a warning instead of throwing an error
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('⚠️ Supabase environment variables are not set. Using fallback values for development.');
-  console.warn('⚠️ Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
-  console.warn('⚠️ Visit https://docs.lovable.dev/integrations/supabase/ to learn how to set up Supabase with Lovable.');
+// Log configuration status for debugging
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('⚠️ Supabase environment variables are not set. Authentication will not work.');
+  console.error('⚠️ Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+  console.error('⚠️ Visit https://docs.lovable.dev/integrations/supabase/ to learn how to set up Supabase with Lovable.');
 }
 
-// Create a single instance of the Supabase client to be used throughout the app
-// We provide fallback values that will be valid for createClient but will throw more meaningful errors when used
+// Create a single instance of the Supabase client
 export const supabase = createClient<Database>(
   supabaseUrl || 'https://placeholder-for-error-handling.supabase.co',
   supabaseAnonKey || 'placeholder-anon-key'
 );
 
+// Utility function to check if Supabase is properly configured
+export const isSupabaseConfigured = (): boolean => {
+  return !!supabaseUrl && !!supabaseAnonKey && 
+    supabaseUrl !== 'https://placeholder-for-error-handling.supabase.co' &&
+    supabaseAnonKey !== 'placeholder-anon-key';
+};
+
 // Utility function to get the current user's ID
 export const getCurrentUserId = async (): Promise<string | null> => {
   try {
     // Check if Supabase is properly configured
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!isSupabaseConfigured()) {
       console.error('Supabase not properly configured: Missing URL or API key');
       return null;
     }

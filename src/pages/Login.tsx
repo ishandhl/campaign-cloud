@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import MainLayout from "@/components/layout/MainLayout";
 
@@ -13,6 +15,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,12 +35,18 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoginError("");
     
     try {
       const success = await login(email, password);
       if (success) {
         navigate(getRedirectPath());
+      } else {
+        setLoginError("Login failed. Please check your credentials and try again.");
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      setLoginError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -45,12 +54,16 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setLoginError("");
     
     try {
       const success = await loginWithGoogle();
-      if (success) {
-        navigate(getRedirectPath());
+      if (!success) {
+        setLoginError("Google login failed. Please try again or use email login.");
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      setLoginError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -69,6 +82,13 @@ const Login = () => {
             </CardHeader>
             
             <CardContent className="space-y-4">
+              {loginError && (
+                <Alert variant="destructive" className="border-red-500">
+                  <InfoIcon className="h-4 w-4" />
+                  <AlertDescription>{loginError}</AlertDescription>
+                </Alert>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
