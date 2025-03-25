@@ -1,9 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { AuthError, AuthResponse, Session, User as SupabaseUser } from "@supabase/supabase-js";
+import { AuthError, AuthResponse, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
@@ -21,12 +20,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize user session on component mount
   useEffect(() => {
     const initializeAuth = async () => {
       setLoading(true);
       
-      // Get current session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
@@ -35,7 +32,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setLoading(false);
       
-      // Set up auth state change listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
           if (session) {
@@ -46,7 +42,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       );
       
-      // Clean up subscription on unmount
       return () => {
         subscription.unsubscribe();
       };
@@ -55,9 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
   }, []);
 
-  // Fetch user profile data and set the user state
   const fetchAndSetUser = async (session: Session) => {
-    // Get user profile from the profiles table
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
@@ -69,7 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     
-    // Set user state with profile data
     setUser({
       id: profile.id,
       email: profile.email,
@@ -83,7 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  // Login with email and password
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const { data, error }: AuthResponse = await supabase.auth.signInWithPassword({
@@ -106,7 +97,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Login with Google OAuth
   const loginWithGoogle = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -130,7 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Logout
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     
@@ -143,17 +132,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.success("Logged out successfully");
   };
 
-  // Register new user
   const register = async (email: string, name: string, password: string): Promise<boolean> => {
     try {
-      // Check if Supabase URL is properly configured
-      if (!supabase.supabaseUrl || supabase.supabaseUrl === 'https://your-project-ref.supabase.co') {
-        toast.error("Supabase is not properly configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.");
-        console.error("Supabase configuration error: URL not properly set");
-        return false;
-      }
-
-      // Create user in Supabase Auth
       const { data, error: signUpError }: AuthResponse = await supabase.auth.signUp({
         email,
         password,
@@ -169,7 +149,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      // Create user profile in the profiles table
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -197,7 +176,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Registration error:", error);
       
-      // Handle network errors more gracefully
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       
       if (errorMessage === "Failed to fetch") {
