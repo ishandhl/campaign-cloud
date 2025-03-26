@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/types";
 import { toast } from "sonner";
@@ -63,17 +62,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     
-    setUser({
-      id: profile.id,
-      email: profile.email,
-      name: profile.name,
-      profileImage: profile.profile_image,
-      isAdmin: profile.is_admin,
-      wallet: {
-        balance: profile.wallet_balance
-      },
-      createdAt: profile.created_at
-    });
+    if (profile) {
+      setUser({
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        profileImage: profile.profile_image,
+        isAdmin: profile.is_admin,
+        wallet: {
+          balance: profile.wallet_balance
+        },
+        createdAt: profile.created_at
+      });
+    }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {

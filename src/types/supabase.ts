@@ -10,6 +10,35 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string
+          email: string
+          name: string
+          profile_image: string | null
+          is_admin: boolean
+          wallet_balance: number
+          created_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          name: string
+          profile_image?: string | null
+          is_admin?: boolean
+          wallet_balance?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          name?: string
+          profile_image?: string | null
+          is_admin?: boolean
+          wallet_balance?: number
+          created_at?: string
+        }
+      }
       campaigns: {
         Row: {
           id: string
@@ -112,38 +141,6 @@ export interface Database {
           created_at?: string
         }
       }
-      notifications: {
-        Row: {
-          id: string
-          user_id: string
-          title: string
-          message: string
-          is_read: boolean
-          type: "campaign_update" | "contribution" | "system"
-          related_id?: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          title: string
-          message: string
-          is_read?: boolean
-          type: "campaign_update" | "contribution" | "system"
-          related_id?: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          title?: string
-          message?: string
-          is_read?: boolean
-          type?: "campaign_update" | "contribution" | "system"
-          related_id?: string
-          created_at?: string
-        }
-      }
       transactions: {
         Row: {
           id: string
@@ -176,32 +173,87 @@ export interface Database {
           created_at?: string
         }
       }
-      profiles: {
+      notifications: {
         Row: {
           id: string
-          email: string
-          name: string
-          profile_image?: string
-          is_admin: boolean
-          wallet_balance: number
+          user_id: string
+          title: string
+          message: string
+          is_read: boolean
+          type: "campaign_update" | "contribution" | "system"
+          related_id?: string
           created_at: string
         }
         Insert: {
-          id: string
-          email: string
-          name: string
-          profile_image?: string
-          is_admin?: boolean
-          wallet_balance?: number
+          id?: string
+          user_id: string
+          title: string
+          message: string
+          is_read?: boolean
+          type: "campaign_update" | "contribution" | "system"
+          related_id?: string
           created_at?: string
         }
         Update: {
           id?: string
-          email?: string
-          name?: string
-          profile_image?: string
-          is_admin?: boolean
-          wallet_balance?: number
+          user_id?: string
+          title?: string
+          message?: string
+          is_read?: boolean
+          type?: "campaign_update" | "contribution" | "system"
+          related_id?: string
+          created_at?: string
+        }
+      }
+      campaign_notes: {
+        Row: {
+          id: string
+          campaign_id: string
+          admin_id: string
+          note: string
+          type: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          admin_id: string
+          note: string
+          type: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          campaign_id?: string
+          admin_id?: string
+          note?: string
+          type?: string
+          created_at?: string
+        }
+      }
+      transaction_notes: {
+        Row: {
+          id: string
+          transaction_id: string
+          admin_id: string
+          note: string
+          type: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          transaction_id: string
+          admin_id: string
+          note: string
+          type: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          transaction_id?: string
+          admin_id?: string
+          note?: string
+          type?: string
           created_at?: string
         }
       }
@@ -210,7 +262,44 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_campaign_amount: {
+        Args: {
+          campaign_id: string
+          amount: number
+        }
+        Returns: number
+      }
+      increment_backers: {
+        Args: {
+          campaign_id: string
+        }
+        Returns: number
+      }
+      decrement_wallet: {
+        Args: {
+          user_id: string
+          amount: number
+        }
+        Returns: number
+      }
+      get_campaign_stats: {
+        Args: Record<string, never>
+        Returns: {
+          total_campaigns: number
+          total_funds: number
+          pending_campaigns: number
+        }[]
+      }
+      create_contribution: {
+        Args: {
+          p_user_id: string
+          p_campaign_id: string
+          p_amount: number
+          p_payment_id: string
+          p_status: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

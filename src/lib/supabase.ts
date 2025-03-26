@@ -1,3 +1,4 @@
+
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
 import { supabase as integrationSupabase } from '@/integrations/supabase/client';
