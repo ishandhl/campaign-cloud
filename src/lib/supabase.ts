@@ -1,40 +1,19 @@
-
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
+import { supabase as integrationSupabase } from '@/integrations/supabase/client';
 
-// Supabase client initialization with environment variables or fallback values for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-// Log configuration status for debugging
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('⚠️ Supabase environment variables are not set. Authentication will not work.');
-  console.error('⚠️ Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
-  console.error('⚠️ Visit https://docs.lovable.dev/integrations/supabase/ to learn how to set up Supabase with Lovable.');
-}
-
-// Create a single instance of the Supabase client
-export const supabase = createClient<Database>(
-  supabaseUrl || 'https://placeholder-for-error-handling.supabase.co',
-  supabaseAnonKey || 'placeholder-anon-key'
-);
+// Create a single instance of the Supabase client using the integration values
+export const supabase = integrationSupabase;
 
 // Utility function to check if Supabase is properly configured
 export const isSupabaseConfigured = (): boolean => {
-  return !!supabaseUrl && !!supabaseAnonKey && 
-    supabaseUrl !== 'https://placeholder-for-error-handling.supabase.co' &&
-    supabaseAnonKey !== 'placeholder-anon-key';
+  // The Supabase client from the integration is already properly configured
+  return true;
 };
 
 // Utility function to get the current user's ID
 export const getCurrentUserId = async (): Promise<string | null> => {
   try {
-    // Check if Supabase is properly configured
-    if (!isSupabaseConfigured()) {
-      console.error('Supabase not properly configured: Missing URL or API key');
-      return null;
-    }
-
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error) {

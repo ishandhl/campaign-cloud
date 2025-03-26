@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import { toast } from 'sonner';
 
@@ -12,16 +12,6 @@ const Callback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Check if Supabase is configured properly
-        if (!isSupabaseConfigured()) {
-          const configError = "Supabase is not configured correctly. Please check environment variables.";
-          console.error(configError);
-          setError(configError);
-          toast.error(configError);
-          setTimeout(() => navigate('/login'), 3000);
-          return;
-        }
-
         // Get the session after OAuth redirect
         const { data, error: sessionError } = await supabase.auth.getSession();
         
@@ -63,9 +53,6 @@ const Callback = () => {
         <div className="text-center max-w-md">
           <p className="text-red-500 text-lg mb-4">{error}</p>
           <p className="text-gray-600 dark:text-gray-300">Redirecting to login page...</p>
-          <p className="mt-4 text-sm text-gray-500">
-            If you're seeing this error, please make sure the Supabase environment variables are properly set.
-          </p>
         </div>
       ) : (
         <>
